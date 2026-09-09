@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VozCards - English to Spanish Verbal Recall</title>
+  <title>VozCards - 20 Tiers (20k Items)</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -14,6 +14,7 @@
       --accent-glow: rgba(56, 189, 248, 0.3);
       --success: #22c55e;
       --error: #ef4444;
+      --warning: #f59e0b;
       --border: #334155;
     }
 
@@ -32,33 +33,52 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 1.5rem;
+      padding: 1.25rem;
     }
 
     .app-container {
       width: 100%;
-      max-width: 480px;
+      max-width: 500px;
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: 1.25rem;
     }
 
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
 
-    .score-badge {
+    .level-select {
       background: var(--card-bg);
-      padding: 0.4rem 0.9rem;
+      color: var(--warning);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.6rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .level-select option {
+      background: var(--card-bg);
+      color: var(--text);
+    }
+
+    .streak-badge {
+      background: var(--card-bg);
+      padding: 0.4rem 0.8rem;
       border-radius: 9999px;
-      font-size: 0.875rem;
+      font-size: 0.8rem;
       border: 1px solid var(--border);
       color: var(--text-muted);
     }
 
-    .score-badge span {
+    .streak-badge span {
       color: var(--accent);
       font-weight: 700;
     }
@@ -70,13 +90,12 @@
       padding: 2.5rem 1.5rem;
       text-align: center;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-      position: relative;
-      min-height: 240px;
+      min-height: 250px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.85rem;
     }
 
     .cue-label {
@@ -87,14 +106,14 @@
     }
 
     .prompt-word {
-      font-size: 2.5rem;
+      font-size: 2rem;
       font-weight: 800;
-      letter-spacing: -0.02em;
+      line-height: 1.2;
     }
 
     .heard-box {
-      font-size: 1.1rem;
-      min-height: 1.6em;
+      font-size: 1.05rem;
+      min-height: 1.5em;
       color: var(--text-muted);
       font-style: italic;
     }
@@ -110,6 +129,13 @@
       font-style: normal;
     }
 
+    .feedback-banner {
+      font-size: 0.85rem;
+      font-weight: 600;
+      min-height: 1.2em;
+      text-align: center;
+    }
+
     .controls {
       display: flex;
       flex-direction: column;
@@ -118,8 +144,8 @@
     }
 
     .mic-button {
-      width: 80px;
-      height: 80px;
+      width: 76px;
+      height: 76px;
       border-radius: 50%;
       border: none;
       background: var(--card-bg);
@@ -132,10 +158,6 @@
       justify-content: center;
       transition: all 0.2s ease;
       box-shadow: 0 0 15px var(--accent-glow);
-    }
-
-    .mic-button:hover {
-      transform: scale(1.05);
     }
 
     .mic-button.listening {
@@ -151,7 +173,7 @@
     }
 
     .mic-hint {
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       color: var(--text-muted);
     }
 
@@ -192,20 +214,22 @@
 
   <div class="app-container">
     <div class="header">
-      <h2 style="font-size: 1.25rem; font-weight: 700;">VozCards</h2>
-      <div class="score-badge">Streak: <span id="streak">0</span> | Total: <span id="score">0</span></div>
+      <select id="levelSelect" class="level-select" title="Choose Level"></select>
+      <div class="streak-badge">Streak: <span id="streak">0</span>/5</div>
     </div>
 
     <div class="card">
-      <div class="cue-label">Translate aloud to Spanish</div>
-      <div class="prompt-word" id="promptWord">Loading...</div>
-      <div class="heard-box" id="heardText">Press the mic and say the word</div>
+      <div class="cue-label" id="tierMeta">Translate aloud to Spanish</div>
+      <div class="prompt-word" id="promptWord">Generating deck...</div>
+      <div class="heard-box" id="heardText">Tap mic to speak</div>
       <div class="target-hint" id="targetHint"></div>
     </div>
 
+    <div class="feedback-banner" id="bannerMsg"></div>
+
     <div class="controls">
       <button class="mic-button" id="micBtn" title="Speak translation">🎙️</button>
-      <div class="mic-hint" id="statusHint">Click mic or press Space to speak</div>
+      <div class="mic-hint" id="statusHint">Tap the microphone to speak</div>
 
       <div class="btn-row">
         <button class="btn" id="revealBtn">Show Answer</button>
@@ -215,42 +239,191 @@
   </div>
 
   <script>
-    // Deck: English prompt -> Array of accepted Spanish answers
-    const DECK = [
-      { en: "Water", es: ["agua", "el agua"] },
-      { en: "To eat", es: ["comer"] },
-      { en: "House", es: ["casa", "la casa"] },
-      { en: "Always", es: ["siempre"] },
-      { en: "Good morning", es: ["buenos días", "buen día"] },
-      { en: "Thank you", es: ["gracias", "muchas gracias"] },
-      { en: "Friend", es: ["amigo", "amiga"] },
-      { en: "Now", es: ["ahora", "ya"] },
-      { en: "To sleep", es: ["dormir"] },
-      { en: "To speak", es: ["hablar"] },
-      { en: "Book", es: ["libro", "el libro"] },
-      { en: "Tomorrow", es: ["mañana"] },
-      { en: "Of course", es: ["por supuesto", "claro"] },
-      { en: "To understand", es: ["entender", "comprender"] },
-      { en: "Coffee", es: ["café", "el café"] }
+    // --- 20,000+ VOCABULARY & CONJUGATION ENGINE ---
+    const PRONOUNS = [
+      { en: "I", es: "yo" },
+      { en: "You (informal)", es: "tu" },
+      { en: "He", es: "el" },
+      { en: "She", es: "ella" },
+      { en: "We", es: "nosotros" },
+      { en: "They", es: "ellos" }
     ];
 
-    let currentIndex = 0;
-    let score = 0;
-    let streak = 0;
+    // High frequency regular & irregular verb stems across CEFR levels
+    const VERB_SETS = [
+      // 1-5 Foundation verbs
+      [
+        { en: "speak", base: "habl", type: "ar" },
+        { en: "eat", base: "com", type: "er" },
+        { en: "live", base: "viv", type: "ir" },
+        { en: "buy", base: "compr", type: "ar" },
+        { en: "learn", base: "aprend", type: "er" },
+        { en: "write", base: "escrib", type: "ir" },
+        { en: "work", base: "trabaj", type: "ar" },
+        { en: "drink", base: "beb", type: "er" }
+      ],
+      // 6-10 Intermediate verbs
+      [
+        { en: "understand", base: "comprend", type: "er" },
+        { en: "decide", base: "decid", type: "ir" },
+        { en: "travel", base: "viaj", type: "ar" },
+        { en: "run", base: "corr", type: "er" },
+        { en: "open", base: "abr", type: "ir" },
+        { en: "need", base: "necesit", type: "ar" },
+        { en: "share", base: "compart", type: "ir" },
+        { en: "finish", base: "termin", type: "ar" }
+      ],
+      // 11-15 Advanced / Reflexive stems
+      [
+        { en: "achieve", base: "logr", type: "ar" },
+        { en: "discover", base: "descubr", type: "ir" },
+        { en: "promise", base: "promet", type: "er" },
+        { en: "improve", base: "mejor", type: "ar" },
+        { en: "permit", base: "permit", type: "ir" },
+        { en: "fulfill", base: "cumpl", type: "ir" },
+        { en: "forget", base: "olvid", type: "ar" },
+        { en: "change", base: "cambi", type: "ar" }
+      ],
+      // 16-20 Subjunctive & Complex connectors
+      [
+        { en: "develop", base: "desarroll", type: "ar" },
+        { en: "guarantee", base: "garantiz", type: "ar" },
+        { en: "insist", base: "insist", type: "ir" },
+        { en: "resolve", base: "resolv", type: "er" },
+        { en: "require", base: "requer", type: "ir" },
+        { en: "assume", base: "asum", type: "ir" },
+        { en: "express", base: "expres", type: "ar" }
+      ]
+    ];
+
+    const CONJUGATIONS = {
+      present: {
+        ar: ["o", "as", "a", "a", "amos", "an"],
+        er: ["o", "es", "e", "e", "emos", "en"],
+        ir: ["o", "es", "e", "e", "imos", "en"]
+      },
+      preterite: {
+        ar: ["e", "aste", "o", "o", "amos", "aron"],
+        er: ["i", "iste", "io", "io", "imos", "ieron"],
+        ir: ["i", "iste", "io", "io", "imos", "ieron"]
+      },
+      imperfect: {
+        ar: ["aba", "abas", "aba", "aba", "abamos", "aban"],
+        er: ["ia", "ias", "ia", "ia", "iamos", "ian"],
+        ir: ["ia", "ias", "ia", "ia", "iamos", "ian"]
+      },
+      future: {
+        ar: ["are", "aras", "ara", "ara", "aremos", "aran"],
+        er: ["ere", "eras", "era", "era", "eremos", "eran"],
+        ir: ["ire", "iras", "ira", "ira", "iremos", "iran"]
+      },
+      subjunctive: {
+        ar: ["e", "es", "e", "e", "emos", "en"],
+        er: ["a", "as", "a", "a", "amos", "an"],
+        ir: ["a", "as", "a", "a", "amos", "an"]
+      }
+    };
+
+    const CONTEXT_MODIFIERS = [
+      { en: "always", es: "siempre" },
+      { en: "every day", es: "todos los dias" },
+      { en: "yesterday", es: "ayer" },
+      { en: "often", es: "a menudo" },
+      { en: "with my friends", es: "con mis amigos" },
+      { en: "at home", es: "en casa" },
+      { en: "very well", es: "muy bien" },
+      { en: "tomorrow", es: "mañana" },
+      { en: "in the morning", es: "por la mañana" },
+      { en: "already", es: "ya" },
+      { en: "slowly", es: "lentamente" },
+      { en: "quickly", es: "rapidamente" },
+      { en: "frequently", es: "frecuentemente" },
+      { en: "at night", es: "por la noche" },
+      { en: "in the office", es: "en la oficina" },
+      { en: "every week", es: "cada semana" },
+      { en: "here", es: "aqui" },
+      { en: "there", es: "alli" },
+      { en: "together", es: "juntos" },
+      { en: "early", es: "temprano" },
+      { en: "late", es: "tarde" },
+      { en: "clearly", es: "claramente" },
+      { en: "easily", es: "facilmente" },
+      { en: "now", es: "ahora" }
+    ];
+
+    // Builds 20 dynamic tiers each populated with 1,000+ items
+    function generateTierDatabase() {
+      const db = {};
+      const tenses = ["present", "preterite", "imperfect", "future", "subjunctive"];
+
+      for (let level = 1; level <= 20; level++) {
+        const items = [];
+        const verbTierIdx = Math.min(Math.floor((level - 1) / 5), VERB_SETS.length - 1);
+        const activeVerbs = VERB_SETS[verbTierIdx];
+        const activeTense = tenses[(level - 1) % tenses.length];
+
+        // Combine verbs, pronouns, and adverbs to synthesize ~1,000 unique variations per tier
+        for (const verb of activeVerbs) {
+          for (let pIdx = 0; pIdx < PRONOUNS.length; pIdx++) {
+            const pronoun = PRONOUNS[pIdx];
+            const suffix = CONJUGATIONS[activeTense][verb.type][pIdx];
+            const conjugatedForm = verb.base + suffix;
+
+            for (const mod of CONTEXT_MODIFIERS) {
+              const englishPrompt = `${pronoun.en} [${verb.en} / ${activeTense}] ${mod.en}`;
+              const spanishFull = `${pronoun.es} ${conjugatedForm} ${mod.es}`;
+              const spanishDropSubject = `${conjugatedForm} ${mod.es}`; // Spanish often omits subject pronouns
+
+              items.push({
+                en: englishPrompt,
+                es: [spanishFull, spanishDropSubject]
+              });
+
+              if (items.length >= 1000) break;
+            }
+            if (items.length >= 1000) break;
+          }
+          if (items.length >= 1000) break;
+        }
+
+        db[level] = {
+          name: `Level ${level}`,
+          tense: activeTense.toUpperCase(),
+          items: items
+        };
+      }
+      return db;
+    }
+
+    const DATABASE = generateTierDatabase();
+    let currentLevel = 1;
+    let winStreak = 0;
+    let consecutiveSkips = 0;
+    let currentItem = null;
     let isListening = false;
 
-    // Elements
+    // DOM Elements
+    const levelSelect = document.getElementById("levelSelect");
+    const streakEl = document.getElementById("streak");
     const promptWordEl = document.getElementById("promptWord");
     const heardTextEl = document.getElementById("heardText");
     const targetHintEl = document.getElementById("targetHint");
+    const tierMetaEl = document.getElementById("tierMeta");
+    const bannerMsgEl = document.getElementById("bannerMsg");
     const micBtn = document.getElementById("micBtn");
     const statusHintEl = document.getElementById("statusHint");
     const revealBtn = document.getElementById("revealBtn");
     const skipBtn = document.getElementById("skipBtn");
-    const scoreEl = document.getElementById("score");
-    const streakEl = document.getElementById("streak");
 
-    // Speech Recognition Setup
+    // Populate Dropdown
+    for (let i = 1; i <= 20; i++) {
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.textContent = `Level ${i} (${DATABASE[i].tense}) - 1000 items`;
+      levelSelect.appendChild(opt);
+    }
+
+    // Speech Recognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = null;
 
@@ -258,12 +431,12 @@
       recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = "es-ES"; // Speech recognition tuned for Spanish
+      recognition.lang = "es-ES";
 
       recognition.onstart = () => {
         isListening = true;
         micBtn.classList.add("listening");
-        statusHintEl.textContent = "Escuchando... (Listening)";
+        statusHintEl.textContent = "Listening...";
         heardTextEl.className = "heard-box";
         heardTextEl.textContent = "...";
       };
@@ -273,9 +446,8 @@
         verifyAnswer(transcript);
       };
 
-      recognition.onerror = (event) => {
-        console.error("Speech Error:", event.error);
-        statusHintEl.textContent = "Error capturing audio. Try again.";
+      recognition.onerror = () => {
+        statusHintEl.textContent = "Audio error. Tap to retry.";
         stopListening();
       };
 
@@ -283,7 +455,7 @@
         stopListening();
       };
     } else {
-      statusHintEl.textContent = "Web Speech API not supported in this browser. Use Chrome/Edge.";
+      statusHintEl.textContent = "Speech recognition unavailable.";
       micBtn.disabled = true;
     }
 
@@ -291,43 +463,96 @@
       return str
         .toLowerCase()
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // strip accents for forgiving comparison
-        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()¿?¡!]/g, "")
         .trim();
     }
 
+    function showBanner(text, color = "var(--accent)") {
+      bannerMsgEl.textContent = text;
+      bannerMsgEl.style.color = color;
+      setTimeout(() => {
+        if (bannerMsgEl.textContent === text) {
+          bannerMsgEl.textContent = "";
+        }
+      }, 3000);
+    }
+
     function verifyAnswer(spokenText) {
-      const current = DECK[currentIndex];
       const normalizedSpoken = cleanString(spokenText);
-      const isMatch = current.es.some(ans => cleanString(ans) === normalizedSpoken);
+      const isMatch = currentItem.es.some(ans => cleanString(ans) === normalizedSpoken);
 
       if (isMatch) {
         heardTextEl.textContent = `“${spokenText}” ✓`;
         heardTextEl.className = "heard-box success";
-        score++;
-        streak++;
-        updateStats();
+        winStreak++;
+        consecutiveSkips = 0;
+        streakEl.textContent = winStreak;
 
-        // Audio confirmation via TTS
-        speakSpanish(current.es[0]);
+        speakSpanish(currentItem.es[0]);
 
-        setTimeout(() => {
-          nextCard();
-        }, 1200);
+        // Streak Condition: +1 level on 5 correct streak
+        if (winStreak % 5 === 0 && currentLevel < 20) {
+          setLevel(currentLevel + 1);
+          showBanner(`🎉 5 Streak! Promoted to Level ${currentLevel}!`, "var(--warning)");
+        }
+
+        setTimeout(nextCard, 1200);
       } else {
         heardTextEl.textContent = `Heard: “${spokenText}” ✗`;
         heardTextEl.className = "heard-box error";
-        streak = 0;
-        updateStats();
+        winStreak = 0;
+        streakEl.textContent = winStreak;
       }
+    }
+
+    function handleSkip() {
+      winStreak = 0;
+      consecutiveSkips++;
+      streakEl.textContent = winStreak;
+
+      // Skip Condition: -1 level on 2 consecutive skips
+      if (consecutiveSkips >= 2) {
+        if (currentLevel > 1) {
+          setLevel(currentLevel - 1);
+          showBanner(`2 consecutive skips: Down to Level ${currentLevel}`, "var(--accent)");
+        }
+        consecutiveSkips = 0;
+      }
+
+      nextCard();
+    }
+
+    function setLevel(lvl) {
+      currentLevel = parseInt(lvl, 10);
+      levelSelect.value = currentLevel;
+      winStreak = 0;
+      consecutiveSkips = 0;
+      streakEl.textContent = winStreak;
+    }
+
+    function loadCard() {
+      const deck = DATABASE[currentLevel].items;
+      currentItem = deck[Math.floor(Math.random() * deck.length)];
+
+      tierMetaEl.textContent = `Level ${currentLevel} • ${DATABASE[currentLevel].tense}`;
+      promptWordEl.textContent = currentItem.en;
+      heardTextEl.textContent = "Tap mic to speak Spanish";
+      heardTextEl.className = "heard-box";
+      targetHintEl.style.display = "none";
+      targetHintEl.textContent = "";
+    }
+
+    function nextCard() {
+      loadCard();
     }
 
     function speakSpanish(text) {
       if ("speechSynthesis" in window) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "es-ES";
-        utterance.rate = 0.95;
-        window.speechSynthesis.speak(utterance);
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = "es-ES";
+        u.rate = 0.95;
+        window.speechSynthesis.speak(u);
       }
     }
 
@@ -335,37 +560,22 @@
       if (!recognition) return;
       try {
         recognition.start();
-      } catch (err) {
-        console.log("Recognition already active", err);
-      }
+      } catch (e) {}
     }
 
     function stopListening() {
       isListening = false;
       micBtn.classList.remove("listening");
-      statusHintEl.textContent = "Click mic or press Space to speak";
-    }
-
-    function loadCard() {
-      const card = DECK[currentIndex];
-      promptWordEl.textContent = card.en;
-      heardTextEl.textContent = "Press mic to answer in Spanish";
-      heardTextEl.className = "heard-box";
-      targetHintEl.style.display = "none";
-      targetHintEl.textContent = "";
-    }
-
-    function nextCard() {
-      currentIndex = (currentIndex + 1) % DECK.length;
-      loadCard();
-    }
-
-    function updateStats() {
-      scoreEl.textContent = score;
-      streakEl.textContent = streak;
+      statusHintEl.textContent = "Tap mic to speak";
     }
 
     // Event Listeners
+    levelSelect.addEventListener("change", (e) => {
+      setLevel(e.target.value);
+      showBanner(`Manually set to Level ${currentLevel}. Streak reset.`, "var(--accent)");
+      loadCard();
+    });
+
     micBtn.addEventListener("click", () => {
       if (isListening) {
         recognition.stop();
@@ -375,29 +585,16 @@
     });
 
     revealBtn.addEventListener("click", () => {
-      const card = DECK[currentIndex];
-      targetHintEl.textContent = `Answer: ${card.es.join(" / ")}`;
+      targetHintEl.textContent = `Target: ${currentItem.es[0]}`;
       targetHintEl.style.display = "block";
-      speakSpanish(card.es[0]);
+      speakSpanish(currentItem.es[0]);
     });
 
-    skipBtn.addEventListener("click", () => {
-      streak = 0;
-      updateStats();
-      nextCard();
-    });
+    skipBtn.addEventListener("click", handleSkip);
 
-    // Spacebar shortcut to trigger mic
-    window.addEventListener("keydown", (e) => {
-      if (e.code === "Space" && e.target === document.body) {
-        e.preventDefault();
-        micBtn.click();
-      }
-    });
-
-    // Init
+    // Initial Load
+    setLevel(1);
     loadCard();
   </script>
 </body>
 </html>
-
