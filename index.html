@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VozCards - 20 Tiers (20k Items)</title>
+  <title>VozCards - Natural Spanish Drill</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -38,7 +38,7 @@
 
     .app-container {
       width: 100%;
-      max-width: 500px;
+      max-width: 520px;
       display: flex;
       flex-direction: column;
       gap: 1.25rem;
@@ -56,12 +56,13 @@
       background: var(--card-bg);
       color: var(--warning);
       border: 1px solid var(--border);
-      padding: 0.4rem 0.6rem;
+      padding: 0.45rem 0.75rem;
       border-radius: 0.5rem;
       font-weight: 600;
       font-size: 0.85rem;
       outline: none;
       cursor: pointer;
+      max-width: 320px;
     }
 
     .level-select option {
@@ -87,7 +88,7 @@
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 1.5rem;
-      padding: 2.5rem 1.5rem;
+      padding: 2.25rem 1.5rem;
       text-align: center;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
       min-height: 250px;
@@ -100,15 +101,16 @@
 
     .cue-label {
       text-transform: uppercase;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.08em;
       font-size: 0.75rem;
-      color: var(--text-muted);
+      color: var(--accent);
+      font-weight: 600;
     }
 
     .prompt-word {
-      font-size: 2rem;
+      font-size: 1.75rem;
       font-weight: 800;
-      line-height: 1.2;
+      line-height: 1.3;
     }
 
     .heard-box {
@@ -201,7 +203,7 @@
     }
 
     .target-hint {
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       color: var(--accent);
       background: rgba(56, 189, 248, 0.1);
       padding: 0.5rem 1rem;
@@ -219,8 +221,8 @@
     </div>
 
     <div class="card">
-      <div class="cue-label" id="tierMeta">Translate aloud to Spanish</div>
-      <div class="prompt-word" id="promptWord">Generating deck...</div>
+      <div class="cue-label" id="tierMeta">Level 1</div>
+      <div class="prompt-word" id="promptWord">Loading...</div>
       <div class="heard-box" id="heardText">Tap mic to speak</div>
       <div class="target-hint" id="targetHint"></div>
     </div>
@@ -239,163 +241,272 @@
   </div>
 
   <script>
-    // --- 20,000+ VOCABULARY & CONJUGATION ENGINE ---
+    // --- GRAMMATICAL GENERATOR WITH LOGICAL CONTEXTUAL FRAMES ---
     const PRONOUNS = [
-      { en: "I", es: "yo" },
-      { en: "You (informal)", es: "tu" },
-      { en: "He", es: "el" },
-      { en: "She", es: "ella" },
-      { en: "We", es: "nosotros" },
-      { en: "They", es: "ellos" }
+      { en: "I", es: "yo", idx: 0 },
+      { en: "You", es: "tú", idx: 1 },
+      { en: "He", es: "él", idx: 2 },
+      { en: "She", es: "ella", idx: 2 },
+      { en: "We", es: "nosotros", idx: 3 },
+      { en: "They", es: "ellos", idx: 4 }
     ];
 
-    // High frequency regular & irregular verb stems across CEFR levels
-    const VERB_SETS = [
-      // 1-5 Foundation verbs
-      [
-        { en: "speak", base: "habl", type: "ar" },
-        { en: "eat", base: "com", type: "er" },
-        { en: "live", base: "viv", type: "ir" },
-        { en: "buy", base: "compr", type: "ar" },
-        { en: "learn", base: "aprend", type: "er" },
-        { en: "write", base: "escrib", type: "ir" },
-        { en: "work", base: "trabaj", type: "ar" },
-        { en: "drink", base: "beb", type: "er" }
-      ],
-      // 6-10 Intermediate verbs
-      [
-        { en: "understand", base: "comprend", type: "er" },
-        { en: "decide", base: "decid", type: "ir" },
-        { en: "travel", base: "viaj", type: "ar" },
-        { en: "run", base: "corr", type: "er" },
-        { en: "open", base: "abr", type: "ir" },
-        { en: "need", base: "necesit", type: "ar" },
-        { en: "share", base: "compart", type: "ir" },
-        { en: "finish", base: "termin", type: "ar" }
-      ],
-      // 11-15 Advanced / Reflexive stems
-      [
-        { en: "achieve", base: "logr", type: "ar" },
-        { en: "discover", base: "descubr", type: "ir" },
-        { en: "promise", base: "promet", type: "er" },
-        { en: "improve", base: "mejor", type: "ar" },
-        { en: "permit", base: "permit", type: "ir" },
-        { en: "fulfill", base: "cumpl", type: "ir" },
-        { en: "forget", base: "olvid", type: "ar" },
-        { en: "change", base: "cambi", type: "ar" }
-      ],
-      // 16-20 Subjunctive & Complex connectors
-      [
-        { en: "develop", base: "desarroll", type: "ar" },
-        { en: "guarantee", base: "garantiz", type: "ar" },
-        { en: "insist", base: "insist", type: "ir" },
-        { en: "resolve", base: "resolv", type: "er" },
-        { en: "require", base: "requer", type: "ir" },
-        { en: "assume", base: "asum", type: "ir" },
-        { en: "express", base: "expres", type: "ar" }
-      ]
-    ];
+    // Pre-calculated conjugations for common verbs across key tenses
+    // idx 0=yo, 1=tú, 2=él/ella, 3=nosotros, 4=ellos
+    const CONJUGATION_TABLE = {
+      // Level 1-4: Present Tense (habits, routines, current facts)
+      trabajar_pres: { es: ["trabajo", "trabajas", "trabaja", "trabajamos", "trabajan"], en: ["work", "works"] },
+      estudiar_pres: { es: ["estudio", "estudias", "estudia", "estudiamos", "estudian"], en: ["study", "studies"] },
+      vivir_pres:    { es: ["vivo", "vives", "vive", "vivimos", "viven"], en: ["live", "lives"] },
+      hablar_pres:   { es: ["hablo", "hablas", "habla", "hablamos", "hablan"], en: ["speak", "speaks"] },
+      comer_pres:    { es: ["como", "comes", "come", "comemos", "comen"], en: ["eat", "eats"] },
+      beber_pres:    { es: ["bebo", "bebes", "bebe", "bebemos", "beben"], en: ["drink", "drinks"] },
+      leer_pres:     { es: ["leo", "lees", "lee", "leemos", "leen"], en: ["read", "reads"] },
+      escribir_pres: { es: ["escribo", "escribes", "escribe", "escribimos", "escriben"], en: ["write", "writes"] },
+      comprar_pres:  { es: ["compro", "compras", "compra", "compramos", "compran"], en: ["buy", "buys"] },
+      escuchar_pres: { es: ["escucho", "escuchas", "escucha", "escuchamos", "escuchan"], en: ["listen to", "listens to"] },
 
-    const CONJUGATIONS = {
-      present: {
-        ar: ["o", "as", "a", "a", "amos", "an"],
-        er: ["o", "es", "e", "e", "emos", "en"],
-        ir: ["o", "es", "e", "e", "imos", "en"]
-      },
-      preterite: {
-        ar: ["e", "aste", "o", "o", "amos", "aron"],
-        er: ["i", "iste", "io", "io", "imos", "ieron"],
-        ir: ["i", "iste", "io", "io", "imos", "ieron"]
-      },
-      imperfect: {
-        ar: ["aba", "abas", "aba", "aba", "abamos", "aban"],
-        er: ["ia", "ias", "ia", "ia", "iamos", "ian"],
-        ir: ["ia", "ias", "ia", "ia", "iamos", "ian"]
-      },
-      future: {
-        ar: ["are", "aras", "ara", "ara", "aremos", "aran"],
-        er: ["ere", "eras", "era", "era", "eremos", "eran"],
-        ir: ["ire", "iras", "ira", "ira", "iremos", "iran"]
-      },
-      subjunctive: {
-        ar: ["e", "es", "e", "e", "emos", "en"],
-        er: ["a", "as", "a", "a", "amos", "an"],
-        ir: ["a", "as", "a", "a", "amos", "an"]
-      }
+      // Level 5-8: Preterite Past (completed actions in past timeframes)
+      trabajar_pret: { es: ["trabajé", "trabajaste", "trabajó", "trabajamos", "trabajaron"], en: "worked" },
+      estudiar_pret: { es: ["estudié", "estudiaste", "estudió", "estudiamos", "estudiaron"], en: "studied" },
+      vivir_pret:    { es: ["viví", "viviste", "vivió", "vivimos", "vivieron"], en: "lived" },
+      hablar_pret:   { es: ["hablé", "hablaste", "habló", "hablamos", "hablaron"], en: "spoke" },
+      comer_pret:    { es: ["comí", "comiste", "comió", "comimos", "comieron"], en: "ate" },
+      beber_pret:    { es: ["bebí", "bebiste", "bebió", "bebimos", "bebieron"], en: "drank" },
+      escribir_pret: { es: ["escribí", "escribiste", "escribió", "escribimos", "escribieron"], en: "wrote" },
+      comprar_pret:  { es: ["compré", "compraste", "compró", "compramos", "compraron"], en: "bought" },
+      llegar_pret:   { es: ["llegué", "llegaste", "llegó", "llegamos", "llegaron"], en: "arrived" },
+      visitar_pret:  { es: ["visité", "visitaste", "visitó", "visitamos", "visitaron"], en: "visited" },
+
+      // Level 9-12: Imperfect Past (habitual past, background states)
+      trabajar_imp:  { es: ["trabajaba", "trabajabas", "trabajaba", "trabajábamos", "trabajaban"], en: "used to work" },
+      vivir_imp:     { es: ["vivía", "vivías", "vivía", "vivíamos", "vivían"], en: "used to live" },
+      estudiar_imp:  { es: ["estudiaba", "estudiabas", "estudiaba", "estudiábamos", "estudiaban"], en: "used to study" },
+      leer_imp:      { es: ["leía", "leías", "leía", "leíamos", "leían"], en: "used to read" },
+      comer_imp:     { es: ["comía", "comías", "comía", "comíamos", "comían"], en: "used to eat" },
+      hablar_imp:    { es: ["hablaba", "hablabas", "hablaba", "hablábamos", "hablaban"], en: "used to speak" },
+
+      // Level 13-16: Future Tense (scheduled, future plans)
+      trabajar_fut:  { es: ["trabajaré", "trabajarás", "trabajará", "trabajaremos", "trabajarán"], en: "will work" },
+      estudiar_fut:  { es: ["estudiaré", "estudiarás", "estudiará", "estudiaremos", "estudiarán"], en: "will study" },
+      viajar_fut:    { es: ["viajaré", "viajarás", "viajará", "viajaremos", "viajarán"], en: "will travel" },
+      hablar_fut:    { es: ["hablaré", "hablarás", "hablará", "hablaremos", "hablarán"], en: "will speak" },
+      comer_fut:     { es: ["comeré", "comerás", "comerá", "comeremos", "comerán"], en: "will eat" },
+      escribir_fut:  { es: ["escribiré", "escribirás", "escribirá", "escribiremos", "escribirán"], en: "will write" },
+      visitar_fut:   { es: ["visitaré", "visitarás", "visitará", "visitaremos", "visitarán"], en: "will visit" },
+
+      // Level 17-20: Conditional Tense (hypothetical, polite desires)
+      trabajar_cond: { es: ["trabajaría", "trabajarías", "trabajaría", "trabajaríamos", "trabajarían"], en: "would work" },
+      vivir_cond:    { es: ["viviría", "vivirías", "viviría", "viviríamos", "vivirían"], en: "would live" },
+      estudiar_cond: { es: ["estudiaría", "estudiarías", "estudiaría", "estudiaríamos", "estudiarían"], en: "would study" },
+      viajar_cond:   { es: ["viajaría", "viajarías", "viajaría", "viajaríamos", "viajarían"], en: "would travel" },
+      comer_cond:    { es: ["comería", "comerías", "comería", "comeríamos", "comerían"], en: "would eat" },
+      comprar_cond:  { es: ["compraría", "comprarías", "compraría", "compraríamos", "comprarían"], en: "would buy" }
     };
 
-    const CONTEXT_MODIFIERS = [
+    // Logical context complements by category
+    const HABITUAL_COMPLEMENTS = [
+      { en: "every day", es: "todos los días" },
       { en: "always", es: "siempre" },
-      { en: "every day", es: "todos los dias" },
-      { en: "yesterday", es: "ayer" },
-      { en: "often", es: "a menudo" },
-      { en: "with my friends", es: "con mis amigos" },
-      { en: "at home", es: "en casa" },
-      { en: "very well", es: "muy bien" },
-      { en: "tomorrow", es: "mañana" },
       { en: "in the morning", es: "por la mañana" },
-      { en: "already", es: "ya" },
-      { en: "slowly", es: "lentamente" },
-      { en: "quickly", es: "rapidamente" },
-      { en: "frequently", es: "frecuentemente" },
       { en: "at night", es: "por la noche" },
+      { en: "on weekends", es: "los fines de semana" },
+      { en: "frequently", es: "frecuentemente" },
+      { en: "often", es: "a menudo" },
+      { en: "with my family", es: "con mi familia" },
+      { en: "with friends", es: "con amigos" },
+      { en: "here", es: "aquí" },
       { en: "in the office", es: "en la oficina" },
+      { en: "at home", es: "en casa" },
+      { en: "very early", es: "muy temprano" },
       { en: "every week", es: "cada semana" },
-      { en: "here", es: "aqui" },
-      { en: "there", es: "alli" },
+      { en: "from Monday to Friday", es: "de lunes a viernes" },
+      { en: "with pleasure", es: "con mucho gusto" },
+      { en: "calmly", es: "con calma" },
+      { en: "a lot", es: "mucho" },
+      { en: "regularly", es: "regularmente" },
       { en: "together", es: "juntos" },
-      { en: "early", es: "temprano" },
-      { en: "late", es: "tarde" },
-      { en: "clearly", es: "claramente" },
-      { en: "easily", es: "facilmente" },
-      { en: "now", es: "ahora" }
+      { en: "with enthusiasm", es: "con entusiasmo" }
     ];
 
-    // Builds 20 dynamic tiers each populated with 1,000+ items
-    function generateTierDatabase() {
-      const db = {};
-      const tenses = ["present", "preterite", "imperfect", "future", "subjunctive"];
+    const PAST_COMPLEMENTS = [
+      { en: "yesterday", es: "ayer" },
+      { en: "last night", es: "anoche" },
+      { en: "yesterday morning", es: "ayer por la mañana" },
+      { en: "yesterday afternoon", es: "ayer por la tarde" },
+      { en: "last week", es: "la semana pasada" },
+      { en: "last month", es: "el mes pasado" },
+      { en: "last year", es: "el año pasado" },
+      { en: "two days ago", es: "hace dos días" },
+      { en: "three hours ago", es: "hace tres horas" },
+      { en: "on Monday", es: "el lunes" },
+      { en: "on Friday", es: "el viernes" },
+      { en: "last weekend", es: "el fin de semana pasado" },
+      { en: "a while ago", es: "hace un rato" },
+      { en: "recently", es: "recientemente" },
+      { en: "that day", es: "ese día" },
+      { en: "two weeks ago", es: "hace dos semanas" },
+      { en: "in the summer", es: "en el verano" },
+      { en: "on vacation", es: "de vacaciones" },
+      { en: "very late", es: "muy tarde" },
+      { en: "before dinner", es: "antes de cenar" },
+      { en: "after lunch", es: "después de comer" }
+    ];
 
-      for (let level = 1; level <= 20; level++) {
+    const IMPERFECT_COMPLEMENTS = [
+      { en: "as a child", es: "de niño" },
+      { en: "when I was young", es: "cuando era joven" },
+      { en: "in those days", es: "en aquellos tiempos" },
+      { en: "every summer", es: "cada verano" },
+      { en: "every winter", es: "cada invierno" },
+      { en: "every afternoon", es: "todas las tardes" },
+      { en: "often", es: "a menudo" },
+      { en: "always", es: "siempre" },
+      { en: "in the past", es: "en el pasado" },
+      { en: "years ago", es: "hace años" },
+      { en: "constantly", es: "constantemente" },
+      { en: "ordinarily", es: "por lo general" },
+      { en: "normally", es: "normalmente" },
+      { en: "with my grandparents", es: "con mis abuelos" },
+      { en: "in the old house", es: "en la casa vieja" },
+      { en: "at the university", es: "en la universidad" },
+      { en: "in the village", es: "en el pueblo" },
+      { en: "during vacation", es: "durante las vacaciones" },
+      { en: "almost always", es: "casi siempre" },
+      { en: "every Saturday", es: "cada sábado" },
+      { en: "without problems", es: "sin problemas" }
+    ];
+
+    const FUTURE_COMPLEMENTS = [
+      { en: "tomorrow", es: "mañana" },
+      { en: "tomorrow morning", es: "mañana por la mañana" },
+      { en: "tomorrow night", es: "mañana por la noche" },
+      { en: "next week", es: "la próxima semana" },
+      { en: "next month", es: "el próximo mes" },
+      { en: "next year", es: "el próximo año" },
+      { en: "soon", es: "pronto" },
+      { en: "later", es: "más tarde" },
+      { en: "this afternoon", es: "esta tarde" },
+      { en: "tonight", es: "esta noche" },
+      { en: "in two days", es: "en dos días" },
+      { en: "in a few hours", es: "en pocas horas" },
+      { en: "next Monday", es: "el próximo lunes" },
+      { en: "this weekend", es: "este fin de semana" },
+      { en: "someday", es: "algún día" },
+      { en: "very soon", es: "muy pronto" },
+      { en: "without delay", es: "sin demora" },
+      { en: "if possible", es: "si es posible" },
+      { en: "together", es: "juntos" },
+      { en: "early tomorrow", es: "mañana temprano" },
+      { en: "next summer", es: "el próximo verano" }
+    ];
+
+    const CONDITIONAL_COMPLEMENTS = [
+      { en: "with pleasure", es: "con mucho gusto" },
+      { en: "if I had time", es: "si tuviera tiempo" },
+      { en: "if it were possible", es: "si fuera posible" },
+      { en: "without thinking twice", es: "sin pensarlo dos veces" },
+      { en: "happily", es: "con felicidad" },
+      { en: "with more money", es: "con más dinero" },
+      { en: "in another city", es: "en otra ciudad" },
+      { en: "in that case", es: "en ese caso" },
+      { en: "gladly", es: "encantado" },
+      { en: "if you asked me", es: "si me lo pidieras" },
+      { en: "under other conditions", es: "bajo otras condiciones" },
+      { en: "any day", es: "cualquier día" },
+      { en: "with your help", es: "con tu ayuda" },
+      { en: "more often", es: "más a menudo" },
+      { en: "without hesitation", es: "sin dudarlo" },
+      { en: "at any moment", es: "en cualquier momento" },
+      { en: "in the future", es: "en el futuro" },
+      { en: "easily", es: "fácilmente" },
+      { en: "now mismo", es: "ahora mismo" },
+      { en: "with proper guidance", es: "con buena orientación" },
+      { en: "every single week", es: "cada santa semana" }
+    ];
+
+    // Build the 20 tiers
+    function buildTierDefinitions() {
+      const tiers = [];
+
+      const levelConfigs = [
+        // 1-4: Present Tense (Habits & Daily Actions)
+        { name: "Present Habits 1", verbs: ["trabajar_pres", "estudiar_pres", "vivir_pres"], complements: HABITUAL_COMPLEMENTS },
+        { name: "Present Habits 2", verbs: ["hablar_pres", "comer_pres", "beber_pres"], complements: HABITUAL_COMPLEMENTS },
+        { name: "Present Habits 3", verbs: ["leer_pres", "escribir_pres", "comprar_pres"], complements: HABITUAL_COMPLEMENTS },
+        { name: "Present Habits 4", verbs: ["escuchar_pres", "trabajar_pres", "estudiar_pres"], complements: HABITUAL_COMPLEMENTS },
+
+        // 5-8: Preterite Past (Completed actions with past markers)
+        { name: "Preterite Past 1", verbs: ["trabajar_pret", "estudiar_pret", "vivir_pret"], complements: PAST_COMPLEMENTS },
+        { name: "Preterite Past 2", verbs: ["hablar_pret", "comer_pret", "beber_pret"], complements: PAST_COMPLEMENTS },
+        { name: "Preterite Past 3", verbs: ["escribir_pret", "comprar_pret", "llegar_pret"], complements: PAST_COMPLEMENTS },
+        { name: "Preterite Past 4", verbs: ["visitar_pret", "trabajar_pret", "hablar_pret"], complements: PAST_COMPLEMENTS },
+
+        // 9-12: Imperfect Past (Ongoing/Habitual Past)
+        { name: "Imperfect Past 1", verbs: ["trabajar_imp", "vivir_imp"], complements: IMPERFECT_COMPLEMENTS },
+        { name: "Imperfect Past 2", verbs: ["estudiar_imp", "leer_imp"], complements: IMPERFECT_COMPLEMENTS },
+        { name: "Imperfect Past 3", verbs: ["comer_imp", "hablar_imp"], complements: IMPERFECT_COMPLEMENTS },
+        { name: "Imperfect Past 4", verbs: ["trabajar_imp", "estudiar_imp"], complements: IMPERFECT_COMPLEMENTS },
+
+        // 13-16: Future Tense (Plans & Upcoming events)
+        { name: "Future Tense 1", verbs: ["trabajar_fut", "estudiar_fut", "viajar_fut"], complements: FUTURE_COMPLEMENTS },
+        { name: "Future Tense 2", verbs: ["hablar_fut", "comer_fut", "escribir_fut"], complements: FUTURE_COMPLEMENTS },
+        { name: "Future Tense 3", verbs: ["visitar_fut", "viajar_fut", "trabajar_fut"], complements: FUTURE_COMPLEMENTS },
+        { name: "Future Tense 4", verbs: ["estudiar_fut", "hablar_fut", "comer_fut"], complements: FUTURE_COMPLEMENTS },
+
+        // 17-20: Conditional Tense (Hypotheticals & Politeness)
+        { name: "Conditional 1", verbs: ["trabajar_cond", "vivir_cond"], complements: CONDITIONAL_COMPLEMENTS },
+        { name: "Conditional 2", verbs: ["estudiar_cond", "viajar_cond"], complements: CONDITIONAL_COMPLEMENTS },
+        { name: "Conditional 3", verbs: ["comer_cond", "comprar_cond"], complements: CONDITIONAL_COMPLEMENTS },
+        { name: "Conditional 4", verbs: ["viajar_cond", "trabajar_cond"], complements: CONDITIONAL_COMPLEMENTS }
+      ];
+
+      for (let i = 0; i < 20; i++) {
+        const config = levelConfigs[i];
         const items = [];
-        const verbTierIdx = Math.min(Math.floor((level - 1) / 5), VERB_SETS.length - 1);
-        const activeVerbs = VERB_SETS[verbTierIdx];
-        const activeTense = tenses[(level - 1) % tenses.length];
 
-        // Combine verbs, pronouns, and adverbs to synthesize ~1,000 unique variations per tier
-        for (const verb of activeVerbs) {
-          for (let pIdx = 0; pIdx < PRONOUNS.length; pIdx++) {
-            const pronoun = PRONOUNS[pIdx];
-            const suffix = CONJUGATIONS[activeTense][verb.type][pIdx];
-            const conjugatedForm = verb.base + suffix;
+        // Synthesize ~1,000 sensible phrases for this tier
+        while (items.length < 1000) {
+          for (const verbKey of config.verbs) {
+            const verbData = CONJUGATION_TABLE[verbKey];
+            for (const pronoun of PRONOUNS) {
+              for (const comp of config.complements) {
+                // Determine natural English verb form
+                let englishVerb = verbData.en;
+                if (Array.isArray(verbData.en)) {
+                  // Present tense: handle 3rd person singular "-s"
+                  englishVerb = (pronoun.idx === 2) ? verbData.en[1] : verbData.en[0];
+                }
 
-            for (const mod of CONTEXT_MODIFIERS) {
-              const englishPrompt = `${pronoun.en} [${verb.en} / ${activeTense}] ${mod.en}`;
-              const spanishFull = `${pronoun.es} ${conjugatedForm} ${mod.es}`;
-              const spanishDropSubject = `${conjugatedForm} ${mod.es}`; // Spanish often omits subject pronouns
+                const spanishVerb = verbData.es[pronoun.idx];
+                const englishSentence = `${pronoun.en} ${englishVerb} ${comp.en}.`;
+                const spanishWithPronoun = `${pronoun.es} ${spanishVerb} ${comp.es}`;
+                const spanishDropped = `${spanishVerb} ${comp.es}`;
 
-              items.push({
-                en: englishPrompt,
-                es: [spanishFull, spanishDropSubject]
-              });
+                items.push({
+                  en: englishSentence,
+                  es: [spanishWithPronoun, spanishDropped]
+                });
 
+                if (items.length >= 1000) break;
+              }
               if (items.length >= 1000) break;
             }
             if (items.length >= 1000) break;
           }
-          if (items.length >= 1000) break;
         }
 
-        db[level] = {
-          name: `Level ${level}`,
-          tense: activeTense.toUpperCase(),
+        tiers.push({
+          levelNumber: i + 1,
+          name: `Level ${i + 1}: ${config.name}`,
           items: items
-        };
+        });
       }
-      return db;
+
+      return tiers;
     }
 
-    const DATABASE = generateTierDatabase();
+    const TIERS = buildTierDefinitions();
     let currentLevel = 1;
     let winStreak = 0;
     let consecutiveSkips = 0;
@@ -416,12 +527,12 @@
     const skipBtn = document.getElementById("skipBtn");
 
     // Populate Dropdown
-    for (let i = 1; i <= 20; i++) {
+    TIERS.forEach((tier) => {
       const opt = document.createElement("option");
-      opt.value = i;
-      opt.textContent = `Level ${i} (${DATABASE[i].tense}) - 1000 items`;
+      opt.value = tier.levelNumber;
+      opt.textContent = `${tier.name} (1000 items)`;
       levelSelect.appendChild(opt);
-    }
+    });
 
     // Speech Recognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -436,7 +547,7 @@
       recognition.onstart = () => {
         isListening = true;
         micBtn.classList.add("listening");
-        statusHintEl.textContent = "Listening...";
+        statusHintEl.textContent = "Listening for Spanish...";
         heardTextEl.className = "heard-box";
         heardTextEl.textContent = "...";
       };
@@ -447,7 +558,7 @@
       };
 
       recognition.onerror = () => {
-        statusHintEl.textContent = "Audio error. Tap to retry.";
+        statusHintEl.textContent = "Microphone error. Tap to retry.";
         stopListening();
       };
 
@@ -463,7 +574,7 @@
       return str
         .toLowerCase()
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[\u0300-\u036f]/g, "") // strip accents for tolerant voice grading
         .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()¿?¡!]/g, "")
         .trim();
     }
@@ -491,10 +602,10 @@
 
         speakSpanish(currentItem.es[0]);
 
-        // Streak Condition: +1 level on 5 correct streak
+        // Level up condition: 5-word streak
         if (winStreak % 5 === 0 && currentLevel < 20) {
           setLevel(currentLevel + 1);
-          showBanner(`🎉 5 Streak! Promoted to Level ${currentLevel}!`, "var(--warning)");
+          showBanner(`🔥 5 in a row! Promoted to Level ${currentLevel}!`, "var(--warning)");
         }
 
         setTimeout(nextCard, 1200);
@@ -511,11 +622,11 @@
       consecutiveSkips++;
       streakEl.textContent = winStreak;
 
-      // Skip Condition: -1 level on 2 consecutive skips
+      // Level down condition: 2 skips in a row
       if (consecutiveSkips >= 2) {
         if (currentLevel > 1) {
           setLevel(currentLevel - 1);
-          showBanner(`2 consecutive skips: Down to Level ${currentLevel}`, "var(--accent)");
+          showBanner(`2 skips in a row: Lowered to Level ${currentLevel}`, "var(--accent)");
         }
         consecutiveSkips = 0;
       }
@@ -532,10 +643,10 @@
     }
 
     function loadCard() {
-      const deck = DATABASE[currentLevel].items;
-      currentItem = deck[Math.floor(Math.random() * deck.length)];
+      const tier = TIERS[currentLevel - 1];
+      currentItem = tier.items[Math.floor(Math.random() * tier.items.length)];
 
-      tierMetaEl.textContent = `Level ${currentLevel} • ${DATABASE[currentLevel].tense}`;
+      tierMetaEl.textContent = tier.name;
       promptWordEl.textContent = currentItem.en;
       heardTextEl.textContent = "Tap mic to speak Spanish";
       heardTextEl.className = "heard-box";
@@ -572,7 +683,7 @@
     // Event Listeners
     levelSelect.addEventListener("change", (e) => {
       setLevel(e.target.value);
-      showBanner(`Manually set to Level ${currentLevel}. Streak reset.`, "var(--accent)");
+      showBanner(`Manually switched to Level ${currentLevel}. Streak reset.`, "var(--accent)");
       loadCard();
     });
 
@@ -585,14 +696,14 @@
     });
 
     revealBtn.addEventListener("click", () => {
-      targetHintEl.textContent = `Target: ${currentItem.es[0]}`;
+      targetHintEl.textContent = `Answer: ${currentItem.es[0]}`;
       targetHintEl.style.display = "block";
       speakSpanish(currentItem.es[0]);
     });
 
     skipBtn.addEventListener("click", handleSkip);
 
-    // Initial Load
+    // Initialize
     setLevel(1);
     loadCard();
   </script>
