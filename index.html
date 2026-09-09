@@ -1,1 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VozCards - English to Spanish Verbal Recall</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.3);
+      --success: #22c55e;
+      --error: #ef4444;
+      --border: #334155;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .score-badge {
+      background: var(--card-bg);
+      padding: 0.4rem 0.9rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .score-badge span {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 1.5rem;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      position: relative;
+      min-height: 240px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .cue-label {
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .prompt-word {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .heard-box {
+      font-size: 1.1rem;
+      min-height: 1.6em;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .heard-box.success {
+      color: var(--success);
+      font-style: normal;
+      font-weight: 600;
+    }
+
+    .heard-box.error {
+      color: var(--error);
+      font-style: normal;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .mic-button {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: none;
+      background: var(--card-bg);
+      border: 2px solid var(--accent);
+      color: var(--accent);
+      font-size: 1.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    .mic-button:hover {
+      transform: scale(1.05);
+    }
+
+    .mic-button.listening {
+      background: var(--accent);
+      color: var(--bg);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
+      70% { box-shadow: 0 0 0 20px rgba(56, 189, 248, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+    }
+
+    .mic-hint {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.75rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+
+    .target-hint {
+      font-size: 0.9rem;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="header">
+      <h2 style="font-size: 1.25rem; font-weight: 700;">VozCards</h2>
+      <div class="score-badge">Streak: <span id="streak">0</span> | Total: <span id="score">0</span></div>
+    </div>
+
+    <div class="card">
+      <div class="cue-label">Translate aloud to Spanish</div>
+      <div class="prompt-word" id="promptWord">Loading...</div>
+      <div class="heard-box" id="heardText">Press the mic and say the word</div>
+      <div class="target-hint" id="targetHint"></div>
+    </div>
+
+    <div class="controls">
+      <button class="mic-button" id="micBtn" title="Speak translation">🎙️</button>
+      <div class="mic-hint" id="statusHint">Click mic or press Space to speak</div>
+
+      <div class="btn-row">
+        <button class="btn" id="revealBtn">Show Answer</button>
+        <button class="btn" id="skipBtn">Skip</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Deck: English prompt -> Array of accepted Spanish answers
+    const DECK = [
+      { en: "Water", es: ["agua", "el agua"] },
+      { en: "To eat", es: ["comer"] },
+      { en: "House", es: ["casa", "la casa"] },
+      { en: "Always", es: ["siempre"] },
+      { en: "Good morning", es: ["buenos días", "buen día"] },
+      { en: "Thank you", es: ["gracias", "muchas gracias"] },
+      { en: "Friend", es: ["amigo", "amiga"] },
+      { en: "Now", es: ["ahora", "ya"] },
+      { en: "To sleep", es: ["dormir"] },
+      { en: "To speak", es: ["hablar"] },
+      { en: "Book", es: ["libro", "el libro"] },
+      { en: "Tomorrow", es: ["mañana"] },
+      { en: "Of course", es: ["por supuesto", "claro"] },
+      { en: "To understand", es: ["entender", "comprender"] },
+      { en: "Coffee", es: ["café", "el café"] }
+    ];
+
+    let currentIndex = 0;
+    let score = 0;
+    let streak = 0;
+    let isListening = false;
+
+    // Elements
+    const promptWordEl = document.getElementById("promptWord");
+    const heardTextEl = document.getElementById("heardText");
+    const targetHintEl = document.getElementById("targetHint");
+    const micBtn = document.getElementById("micBtn");
+    const statusHintEl = document.getElementById("statusHint");
+    const revealBtn = document.getElementById("revealBtn");
+    const skipBtn = document.getElementById("skipBtn");
+    const scoreEl = document.getElementById("score");
+    const streakEl = document.getElementById("streak");
+
+    // Speech Recognition Setup
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = "es-ES"; // Speech recognition tuned for Spanish
+
+      recognition.onstart = () => {
+        isListening = true;
+        micBtn.classList.add("listening");
+        statusHintEl.textContent = "Escuchando... (Listening)";
+        heardTextEl.className = "heard-box";
+        heardTextEl.textContent = "...";
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.trim().toLowerCase();
+        verifyAnswer(transcript);
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech Error:", event.error);
+        statusHintEl.textContent = "Error capturing audio. Try again.";
+        stopListening();
+      };
+
+      recognition.onend = () => {
+        stopListening();
+      };
+    } else {
+      statusHintEl.textContent = "Web Speech API not supported in this browser. Use Chrome/Edge.";
+      micBtn.disabled = true;
+    }
+
+    function cleanString(str) {
+      return str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // strip accents for forgiving comparison
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")
+        .trim();
+    }
+
+    function verifyAnswer(spokenText) {
+      const current = DECK[currentIndex];
+      const normalizedSpoken = cleanString(spokenText);
+      const isMatch = current.es.some(ans => cleanString(ans) === normalizedSpoken);
+
+      if (isMatch) {
+        heardTextEl.textContent = `“${spokenText}” ✓`;
+        heardTextEl.className = "heard-box success";
+        score++;
+        streak++;
+        updateStats();
+
+        // Audio confirmation via TTS
+        speakSpanish(current.es[0]);
+
+        setTimeout(() => {
+          nextCard();
+        }, 1200);
+      } else {
+        heardTextEl.textContent = `Heard: “${spokenText}” ✗`;
+        heardTextEl.className = "heard-box error";
+        streak = 0;
+        updateStats();
+      }
+    }
+
+    function speakSpanish(text) {
+      if ("speechSynthesis" in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "es-ES";
+        utterance.rate = 0.95;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    function startListening() {
+      if (!recognition) return;
+      try {
+        recognition.start();
+      } catch (err) {
+        console.log("Recognition already active", err);
+      }
+    }
+
+    function stopListening() {
+      isListening = false;
+      micBtn.classList.remove("listening");
+      statusHintEl.textContent = "Click mic or press Space to speak";
+    }
+
+    function loadCard() {
+      const card = DECK[currentIndex];
+      promptWordEl.textContent = card.en;
+      heardTextEl.textContent = "Press mic to answer in Spanish";
+      heardTextEl.className = "heard-box";
+      targetHintEl.style.display = "none";
+      targetHintEl.textContent = "";
+    }
+
+    function nextCard() {
+      currentIndex = (currentIndex + 1) % DECK.length;
+      loadCard();
+    }
+
+    function updateStats() {
+      scoreEl.textContent = score;
+      streakEl.textContent = streak;
+    }
+
+    // Event Listeners
+    micBtn.addEventListener("click", () => {
+      if (isListening) {
+        recognition.stop();
+      } else {
+        startListening();
+      }
+    });
+
+    revealBtn.addEventListener("click", () => {
+      const card = DECK[currentIndex];
+      targetHintEl.textContent = `Answer: ${card.es.join(" / ")}`;
+      targetHintEl.style.display = "block";
+      speakSpanish(card.es[0]);
+    });
+
+    skipBtn.addEventListener("click", () => {
+      streak = 0;
+      updateStats();
+      nextCard();
+    });
+
+    // Spacebar shortcut to trigger mic
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" && e.target === document.body) {
+        e.preventDefault();
+        micBtn.click();
+      }
+    });
+
+    // Init
+    loadCard();
+  </script>
+</body>
+</html>
 
